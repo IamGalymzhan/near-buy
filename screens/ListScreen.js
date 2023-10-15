@@ -13,47 +13,11 @@ import InputSpinner from 'react-native-input-spinner';
 import { SelectList } from 'react-native-dropdown-select-list';
 import { Trash2, Plus, Minus, X } from 'react-native-feather';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { productList } from '../data/productList';
 
-const DATA = [
-    {
-        barcode: 'bd7acbea-c1b1-46c2-aed5-3ad53abb28ba',
-        name: 'Хлеб',
-        amount: 1.0,
-        unit: 'шт',
-    },
-    {
-        barcode: '3ac68afc-c605-48d3-a4f8-fbd91aa97f63',
-        name: 'Морковь',
-        amount: 1.0,
-        unit: 'кг',
-    },
-    {
-        barcode: '58694a0f-3da1-471f-bd96-145571e29d72',
-        name: 'Бананы Уругвай зеленые красивые',
-        amount: 1.0,
-        unit: 'кг',
-    },
-];
-
-const products = [
-    {
-        key: 123456789123,
-        value: "Банан",
-    },
-    {
-        key: 987654321987,
-        value: "Хлеб",
-    },
-    {
-        key: 147258369147,
-        value: "Морковь",
-    },
-
-]
-
-const saveShoppingList = async (data) => {
+const saveShoppingList = async (shoppingList) => {
     try {
-        const jsonValue = JSON.stringify(data);
+        const jsonValue = JSON.stringify(shoppingList);
         await AsyncStorage.setItem('shoppingListData', jsonValue);
     } catch (error) {
         console.error('Error saving shopping list:', error);
@@ -99,10 +63,32 @@ const Item = ({ name, amount, unit }) => (
 const ListScreen = ({ navigation }) => {
     const [isModalVisible, setModalVisible] = useState(false);
 
+    const [shoppingList, setShoppingList] = useState([]);
+
+    const selectListData = productList.map((item) => ({
+        key: item.barcode,
+        value: item.name,
+    }));
+
     const PopUp = () => {
         const [selectedId, setSelectedId] = useState(0);
+        const [currentName, setCurrentName] = useState('');
         const [currentAmount, setCurrentAmount] = useState(1);
-        const [currentQuantity, setCurrentQuantity] = useState('');
+        const [currentUnit, setCurrentUnit] = useState('');
+
+
+        const handleSave = () => {
+            setModalVisible(false);
+            for (let i = 0; i < shoppingList.length; i++) {
+                if (shoppingList[i].barcode == selectedId) {
+                    return;
+                }
+            }
+            setShoppingList([...shoppingList, 
+                {barcode: selectedId, name: currentName, amount: currentAmount, unit: currentUnit}]
+                )
+            saveShoppingList(shoppingList);
+        }
 
         return (
             <Modal
@@ -114,9 +100,17 @@ const ListScreen = ({ navigation }) => {
                 <View style={styles.modalWindow}>
                     <View style={styles.selectListContainer}>
                         <SelectList
-                            data={products}
+                            data={selectListData}
                             save='key'
-                            setSelected={(val) => { setSelectedId(val) }}
+                            setSelected={(val) => { 
+                                setSelectedId(val);
+                                for (let i = 0; i < productList.length; i++) {
+                                    if (productList[i].barcode == val) {
+                                        setCurrentName(productList[i].name);
+                                        setCurrentUnit(productList[i].unit);
+                                    }
+                                }
+                            }}
                         />
                     </View>
                     <View flexDirection='row'>
@@ -133,6 +127,7 @@ const ListScreen = ({ navigation }) => {
                         </InputSpinner>
                         <TouchableOpacity
                             style={styles.addButton}
+                            onPress={handleSave}
                         >
                             <Text>Добавить</Text>
                         </TouchableOpacity>
@@ -148,9 +143,6 @@ const ListScreen = ({ navigation }) => {
         )
     }
 
-    const [shoppingList, setShoppingList] = useState([]);
-    const [productList, setProductList] = useState([]);
-
     useEffect(() => {
         // Load shopping list data from AsyncStorage
         getShoppingList()
@@ -162,7 +154,7 @@ const ListScreen = ({ navigation }) => {
         <SafeAreaView style={styles.container}>
             <Text style={styles.head}>Список покупок</Text>
             <FlatList
-                data={DATA}
+                data={shoppingList}
                 renderItem={({ item }) => <Item name={item.name} amount={item.amount} unit={item.unit} />}
                 keyExtractor={item => item.barcode}
             />
