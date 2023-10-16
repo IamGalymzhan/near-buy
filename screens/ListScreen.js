@@ -33,34 +33,8 @@ const getShoppingList = async () => {
     }
 };
 
-const Item = ({ name, amount, unit }) => (
-    <View style={styles.item}>
-        <View flex={1}>
-            <Text style={styles.name} adjustsFontSizeToFit numberOfLines={2}>{name}</Text>
-        </View>
-        <View>
-            <TouchableOpacity
-                onPress={() => { }}
-                style={styles.button}
-            >
-                <Trash2 color='red' />
-            </TouchableOpacity>
-            <InputSpinner
-                min={1} max={30} value={amount} rounded={false}
-                buttonStyle={styles.spinnerButton} inputStyle={styles.spinnerInput}
-                buttonFontSize={10}
-                buttonLeftImage={<Minus color={plusMinusColor} />}
-                buttonRightImage={<Plus color={plusMinusColor} />}
-                onChange={() => { }}
-                style={styles.spinner}
-            >
-                <Text>{unit} </Text>
-            </InputSpinner>
-        </View>
-    </View>
-);
 
-const ListScreen = ({ navigation }) => {
+const ListScreen = ({ navigation }, props) => {
     const [isModalVisible, setModalVisible] = useState(false);
 
     const [shoppingList, setShoppingList] = useState([]);
@@ -84,9 +58,9 @@ const ListScreen = ({ navigation }) => {
                     return;
                 }
             }
-            setShoppingList([...shoppingList, 
-                {barcode: selectedId, name: currentName, amount: currentAmount, unit: currentUnit}]
-                )
+            setShoppingList([...shoppingList,
+            { barcode: selectedId, name: currentName, amount: currentAmount, unit: currentUnit }]
+            )
             saveShoppingList(shoppingList);
         }
 
@@ -102,7 +76,7 @@ const ListScreen = ({ navigation }) => {
                         <SelectList
                             data={selectListData}
                             save='key'
-                            setSelected={(val) => { 
+                            setSelected={(val) => {
                                 setSelectedId(val);
                                 for (let i = 0; i < productList.length; i++) {
                                     if (productList[i].barcode == val) {
@@ -143,6 +117,53 @@ const ListScreen = ({ navigation }) => {
         )
     }
 
+
+    const Item = ({ barcode, name, amount, unit }) => (
+        <View style={styles.item}>
+            <View flex={1}>
+                <Text style={styles.name} adjustsFontSizeToFit numberOfLines={2}>{name}</Text>
+            </View>
+            <View>
+                <TouchableOpacity
+                    onPress={() => {deleteFromShoppingList(barcode)}}
+                    style={styles.button}
+                >
+                    <Trash2 color='red' />
+                </TouchableOpacity>
+                <InputSpinner
+                    min={1} max={30} value={amount} rounded={false}
+                    buttonStyle={styles.spinnerButton} inputStyle={styles.spinnerInput}
+                    buttonFontSize={10}
+                    buttonLeftImage={<Minus color={plusMinusColor} />}
+                    buttonRightImage={<Plus color={plusMinusColor} />}
+                    onChange={(val) => {updateFromShoppingList(barcode, val)}}
+                    style={styles.spinner}
+                >
+                    <Text>{unit} </Text>
+                </InputSpinner>
+            </View>
+        </View>
+    );
+
+    const updateFromShoppingList = (barcode, amount) => {
+        const tempList = [...shoppingList];
+        for (let i = 0; i < tempList.length; i++) {
+            if (tempList[i].barcode == barcode) {
+                const item = {barcode: barcode, amount: amount, unit: tempList[i].unit, name:tempList[i].name}
+                tempList[i] = item;
+                break;
+            }
+        }
+        setShoppingList(tempList);
+    }
+
+    const deleteFromShoppingList = (barcode) => {
+        setShoppingList(shoppingList.filter(item => {
+            if (item.barcode != barcode) return true;
+        }))
+    }
+
+
     useEffect(() => {
         // Load shopping list data from AsyncStorage
         getShoppingList()
@@ -155,7 +176,7 @@ const ListScreen = ({ navigation }) => {
             <Text style={styles.head}>Список покупок</Text>
             <FlatList
                 data={shoppingList}
-                renderItem={({ item }) => <Item name={item.name} amount={item.amount} unit={item.unit} />}
+                renderItem={({ item }) => <Item barcode={item.barcode} name={item.name} amount={item.amount} unit={item.unit} />}
                 keyExtractor={item => item.barcode}
             />
             <TouchableOpacity style={styles.roundAddButton} onPress={() => setModalVisible(true)}>
